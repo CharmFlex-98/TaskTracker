@@ -116,3 +116,15 @@ export const boardColumns: BoardColumn[] = [
   { status: 'done', title: 'Done', tasks: tasks.filter((task) => task.status === 'done') },
   { status: 'blocked', title: 'Blocked', tasks: tasks.filter((task) => task.status === 'blocked') },
 ];
+
+export function getProjectById(projectId: string) {
+  return projects.find((project) => project.id === projectId);
+}
+
+export function getTaskById(taskId: string) {
+  return tasks.find((task) => task.id === taskId);
+}
+
+export function getTasksByProjectKey(projectKey: string) {
+  return tasks.filter((task) => task.projectKey === projectKey);
+}

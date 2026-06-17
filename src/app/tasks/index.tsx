@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { LinkButton } from '@/components/link-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -18,6 +19,10 @@ export default function TasksScreen() {
           A mobile board view grouped by status. CRUD and status transitions will attach here.
         </ThemedText>
       </ThemedView>
+
+      <View style={{ alignItems: 'flex-start' }}>
+        <LinkButton href="/tasks/new" label="New task" />
+      </View>
 
       {boardColumns.map((column) => (
         <ThemedView key={column.status} style={{ gap: Spacing.two }}>

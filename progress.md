@@ -19,6 +19,27 @@
   - `src/features/tasks/task-card.tsx`
 - Added starter planner domain types in `src/types/task-planner.ts`.
 - Added local sample project/task/board data in `src/features/tasks/sample-data.ts`.
+- Converted Projects and Tasks from flat routes into route folders so detail/create screens can live under:
+  - `src/app/projects/index.tsx`
+  - `src/app/tasks/index.tsx`
+- Added exact-id detail routes:
+  - `src/app/projects/[projectId].tsx`
+  - `src/app/tasks/[taskId].tsx`
+- Added local draft create routes:
+  - `src/app/projects/new.tsx`
+  - `src/app/tasks/new.tsx`
+- Added local draft edit routes:
+  - `src/app/projects/[projectId]/edit.tsx`
+  - `src/app/tasks/[taskId]/edit.tsx`
+- Added reusable form/navigation helpers:
+  - `src/components/action-button.tsx`
+  - `src/components/link-button.tsx`
+  - `src/components/form-field.tsx`
+  - `src/components/field-preview.tsx`
+  - `src/components/segmented-options.tsx`
+- Made project and task cards link to their detail screens.
+- Made project and task detail screens link to edit screens.
+- Added local status and priority controls for the task edit flow.
 - Installed and configured ESLint through Expo.
 - Verified that `npm run lint` works after switching to a supported Node version.
 - Fixed the web color-scheme hook to avoid React's `set-state-in-effect` lint rule by using `useSyncExternalStore`.
@@ -54,7 +75,6 @@ open -a "Android Studio"
 - React Query setup.
 - Real project CRUD.
 - Real task CRUD.
-- Task detail and edit screens.
 - Status transition mutations.
 - Backend search/filter integration.
 - Tests and CI/CD workflow.
@@ -68,7 +88,6 @@ open -a "Android Studio"
    - secure storage adapter
    - protected route strategy
 2. Add React Query and API client boundaries.
-3. Add project CRUD screens and form components.
-4. Add task CRUD screens and detail/edit flows.
+3. Turn project/task draft forms into real CRUD mutations.
+4. Turn task edit/status controls into real backend mutations.
 5. Connect to the Spring Boot backend once endpoint contracts are ready.
-
