@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { FeedbackState } from '@/components/feedback-state';
 import { LinkButton } from '@/components/link-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -36,13 +37,10 @@ export default function TasksScreen() {
           </View>
 
           {column.tasks.length === 0 ? (
-            <ThemedView
-              type="backgroundElement"
-              style={{ padding: Spacing.three, borderRadius: 8, borderCurve: 'continuous' }}>
-              <ThemedText type="small" themeColor="textSecondary" selectable>
-                No tasks in this status.
-              </ThemedText>
-            </ThemedView>
+            <FeedbackState
+              title="No tasks"
+              message={`No tasks are currently in ${column.title.toLowerCase()}.`}
+            />
           ) : (
             column.tasks.map((task) => <TaskCard key={task.id} task={task} />)
           )}

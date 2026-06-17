@@ -2,16 +2,20 @@
 
 ## Completed
 
+- Phase 1: Modern React Native and Expo Foundation is complete.
 - Created `app_background.md` with product scope, learning roadmap, JD coverage, backend expectations, milestones, and first implementation sequence.
 - Confirmed the app baseline is Expo SDK 56 with React 19.2.3, React Native 0.85.3, Expo Router, TypeScript, typed routes, and React Compiler enabled.
 - Replaced the Expo starter home screen with a TaskTracker dashboard.
 - Removed the starter `explore` route.
 - Added real app tabs for Home, Projects, Tasks, Search, and Settings.
+- Added route groups for app and auth shells:
+  - `src/app/(app)/_layout.tsx`
+  - `src/app/(auth)/sign-in.tsx`
 - Added starter screens:
-  - `src/app/projects.tsx`
-  - `src/app/tasks.tsx`
-  - `src/app/search.tsx`
-  - `src/app/settings.tsx`
+  - `src/app/(app)/projects/index.tsx`
+  - `src/app/(app)/tasks/index.tsx`
+  - `src/app/(app)/search.tsx`
+  - `src/app/(app)/settings.tsx`
 - Added reusable app shell/UI pieces:
   - `src/components/screen.tsx`
   - `src/components/stat-card.tsx`
@@ -20,23 +24,28 @@
 - Added starter planner domain types in `src/types/task-planner.ts`.
 - Added local sample project/task/board data in `src/features/tasks/sample-data.ts`.
 - Converted Projects and Tasks from flat routes into route folders so detail/create screens can live under:
-  - `src/app/projects/index.tsx`
-  - `src/app/tasks/index.tsx`
+  - `src/app/(app)/projects/index.tsx`
+  - `src/app/(app)/tasks/index.tsx`
 - Added exact-id detail routes:
-  - `src/app/projects/[projectId].tsx`
-  - `src/app/tasks/[taskId].tsx`
+  - `src/app/(app)/projects/[projectId].tsx`
+  - `src/app/(app)/tasks/[taskId].tsx`
 - Added local draft create routes:
-  - `src/app/projects/new.tsx`
-  - `src/app/tasks/new.tsx`
+  - `src/app/(app)/projects/new.tsx`
+  - `src/app/(app)/tasks/new.tsx`
 - Added local draft edit routes:
-  - `src/app/projects/[projectId]/edit.tsx`
-  - `src/app/tasks/[taskId]/edit.tsx`
+  - `src/app/(app)/projects/[projectId]/edit.tsx`
+  - `src/app/(app)/tasks/[taskId]/edit.tsx`
 - Added reusable form/navigation helpers:
   - `src/components/action-button.tsx`
   - `src/components/link-button.tsx`
   - `src/components/form-field.tsx`
   - `src/components/field-preview.tsx`
   - `src/components/segmented-options.tsx`
+- Added reusable Phase 1 UI states/primitives:
+  - `src/components/avatar.tsx`
+  - `src/components/feedback-state.tsx`
+  - `src/components/icon-button.tsx`
+  - `src/components/status-badge.tsx`
 - Made project and task cards link to their detail screens.
 - Made project and task detail screens link to edit screens.
 - Added local status and priority controls for the task edit flow.
@@ -82,7 +91,7 @@ open -a "Android Studio"
 
 ## Next Steps
 
-1. Add auth architecture files without wiring real Google OAuth yet:
+1. Start Phase 2 by adding auth architecture files without wiring real Google OAuth yet:
    - auth types
    - auth context/provider
    - secure storage adapter

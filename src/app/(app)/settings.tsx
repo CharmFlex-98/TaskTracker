@@ -1,3 +1,6 @@
+import { View } from 'react-native';
+
+import { Avatar } from '@/components/avatar';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -21,6 +24,18 @@ const settingsSections = [
 export default function SettingsScreen() {
   return (
     <Screen>
+      <View style={{ alignItems: 'center', flexDirection: 'row', gap: Spacing.two }}>
+        <Avatar name="Jiaming" />
+        <ThemedView style={{ flex: 1, gap: Spacing.half }}>
+          <ThemedText type="smallBold" selectable>
+            Jiaming
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" selectable>
+            Local preview account
+          </ThemedText>
+        </ThemedView>
+      </View>
+
       <ThemedView style={{ gap: Spacing.two }}>
         <ThemedText type="subtitle" selectable>
           Settings

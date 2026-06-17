@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
+import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -19,6 +20,21 @@ const priorityColors: Record<TaskPriority, string> = {
   medium: '#246BFE',
   high: '#D97706',
   urgent: '#DC2626',
+};
+
+const statusTones: Record<TaskStatus, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
+  todo: 'neutral',
+  inProgress: 'info',
+  review: 'warning',
+  done: 'success',
+  blocked: 'danger',
+};
+
+const priorityTones: Record<TaskPriority, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
+  low: 'success',
+  medium: 'info',
+  high: 'warning',
+  urgent: 'danger',
 };
 
 type TaskCardProps = {
@@ -49,9 +65,7 @@ export function TaskCard({ task }: TaskCardProps) {
                 backgroundColor: priorityColors[task.priority],
               }}
             />
-            <ThemedText type="small" themeColor="textSecondary" selectable>
-              {task.priority}
-            </ThemedText>
+            <StatusBadge label={task.priority} tone={priorityTones[task.priority]} />
           </View>
 
           <ThemedText type="smallBold" selectable>
@@ -59,9 +73,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </ThemedText>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two }}>
-            <ThemedText type="small" themeColor="textSecondary" selectable>
-              {statusLabels[task.status]}
-            </ThemedText>
+            <StatusBadge label={statusLabels[task.status]} tone={statusTones[task.status]} />
             <ThemedText type="small" themeColor="textSecondary" selectable>
               {task.assignee}
             </ThemedText>
