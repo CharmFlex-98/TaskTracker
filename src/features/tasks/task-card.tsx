@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import type { TaskPriority, TaskStatus, TaskSummary } from '@/types/task-planner';
+import type { TaskPriority, TaskStatus, TaskSummary } from '@/features/task-planner/types';
 
 const statusLabels: Record<TaskStatus, string> = {
   todo: 'To do',

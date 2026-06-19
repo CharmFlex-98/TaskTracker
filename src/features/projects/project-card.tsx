@@ -4,14 +4,14 @@ import { Pressable, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import type { ProjectSummary } from '@/types/task-planner';
+import type { ProjectSummary } from '@/features/task-planner/types';
 
 type ProjectCardProps = {
   project: ProjectSummary;
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const completion = Math.round((project.completedCount / project.taskCount) * 100);
+  const completion = project.taskCount === 0 ? 0 : Math.round((project.completedCount / project.taskCount) * 100);
 
   return (
     <Link href={{ pathname: '/projects/[projectId]', params: { projectId: project.id } }} asChild>

@@ -1,4 +1,4 @@
-import type { BoardColumn, ProjectSummary, TaskSummary } from '@/types/task-planner';
+import type { BoardColumn, ProjectSummary, TaskSummary } from '@/features/task-planner/types';
 
 export const projects: ProjectSummary[] = [
   {

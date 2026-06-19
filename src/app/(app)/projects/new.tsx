@@ -1,20 +1,31 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import { ActionButton } from '@/components/action-button';
+import { FeedbackState } from '@/components/feedback-state';
 import { FieldPreview } from '@/components/field-preview';
 import { FormField } from '@/components/form-field';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useCreateProjectMutation } from '@/features/projects/project-queries';
 
 export default function NewProjectScreen() {
+  const router = useRouter();
+  const createProjectMutation = useCreateProjectMutation();
   const [name, setName] = useState('');
-  const [key, setKey] = useState('');
   const [description, setDescription] = useState('');
-  const [lead, setLead] = useState('');
   const [draftSaved, setDraftSaved] = useState(false);
+
+  async function handleCreateProject() {
+    const project = await createProjectMutation.mutateAsync({
+      description,
+      name,
+    });
+    router.replace({ pathname: '/projects/[projectId]', params: { projectId: project.id } });
+  }
 
   return (
     <Screen keyboardShouldPersistTaps="handled">
@@ -23,12 +34,11 @@ export default function NewProjectScreen() {
           New project
         </ThemedText>
         <ThemedText themeColor="textSecondary" selectable>
-          This is the create-project form shell. Saving is local-only until the API mutation is added.
+          Create a project through the Spring Boot API.
         </ThemedText>
       </ThemedView>
 
       <FormField label="Project name" value={name} onChangeText={setName} placeholder="Mobile task planner" />
-      <FormField label="Project key" value={key} onChangeText={setKey} placeholder="MOB" autoCapitalize="characters" />
       <FormField
         label="Description"
         value={description}
@@ -37,9 +47,17 @@ export default function NewProjectScreen() {
         multiline
         style={{ minHeight: 96, textAlignVertical: 'top' }}
       />
-      <FormField label="Lead" value={lead} onChangeText={setLead} placeholder="Project owner" />
+
+      {createProjectMutation.error ? (
+        <FeedbackState title="Project not created" message={createProjectMutation.error.message} variant="error" />
+      ) : null}
 
       <View style={{ alignItems: 'flex-start' }}>
+        <ActionButton
+          disabled={createProjectMutation.isPending}
+          label={createProjectMutation.isPending ? 'Creating...' : 'Create project'}
+          onPress={handleCreateProject}
+        />
         <ActionButton label="Preview draft" onPress={() => setDraftSaved(true)} />
       </View>
 
@@ -49,9 +67,7 @@ export default function NewProjectScreen() {
             Draft preview
           </ThemedText>
           <FieldPreview label="Name" value={name} />
-          <FieldPreview label="Key" value={key} />
           <FieldPreview label="Description" value={description} />
-          <FieldPreview label="Lead" value={lead} />
         </ThemedView>
       ) : null}
     </Screen>

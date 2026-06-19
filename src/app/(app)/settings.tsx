@@ -1,10 +1,12 @@
 import { View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
+import { ActionButton } from '@/components/action-button';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { useAuth } from '@/features/auth/auth-provider';
 
 const settingsSections = [
   {
@@ -22,16 +24,20 @@ const settingsSections = [
 ];
 
 export default function SettingsScreen() {
+  const { session, signOut } = useAuth();
+  const displayName = session?.user.name ?? 'Unknown user';
+  const displayEmail = session?.user.email ?? 'No email';
+
   return (
     <Screen>
       <View style={{ alignItems: 'center', flexDirection: 'row', gap: Spacing.two }}>
-        <Avatar name="Jiaming" />
+        <Avatar name={displayName} />
         <ThemedView style={{ flex: 1, gap: Spacing.half }}>
           <ThemedText type="smallBold" selectable>
-            Jiaming
+            {displayName}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary" selectable>
-            Local preview account
+            {displayEmail}
           </ThemedText>
         </ThemedView>
       </View>
@@ -58,6 +64,10 @@ export default function SettingsScreen() {
           </ThemedText>
         </ThemedView>
       ))}
+
+      <View style={{ alignItems: 'flex-start' }}>
+        <ActionButton label="Sign out" onPress={signOut} />
+      </View>
     </Screen>
   );
 }

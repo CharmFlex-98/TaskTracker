@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a mobile task planner inspired by Jira to relearn modern React Native with Expo while producing a portfolio-quality app that demonstrates TypeScript, React Native, Expo Router, React Query, Context API, REST API integration, Google OAuth, reusable UI, performance awareness, testing, and maintainable frontend architecture.
+Build a mobile task planner inspired by Jira to relearn modern React Native with Expo while producing a portfolio-quality app that demonstrates TypeScript, React Native, Expo Router, React Query, Context API, REST API integration, Firebase Google login, reusable UI, performance awareness, testing, and maintainable frontend architecture.
 
 The app should be functional, not just a UI demo. It should support login, online data persistence through the Spring Boot backend, and full CRUD workflows for projects, boards, tasks, progress, and user-facing task planning views.
 
@@ -23,7 +23,7 @@ Important SDK 56 notes for this project:
 
 - Expo SDK 56 targets React Native `0.85`, React `19.2.3`, React Native Web `0.21.0`, and minimum Node.js `22.13.x`.
 - Use `npx expo install` for Expo SDK packages so package versions match SDK 56.
-- OAuth browser flows are supported through `expo-auth-session`, but the Expo docs recommend provider-owned libraries where available for Google auth. For a learning app, start with `expo-auth-session` only if the backend controls token exchange and no client secrets are embedded in the app.
+- Google sign-in starts in the Expo client, then Firebase Auth produces a Firebase ID token that Spring Boot verifies with Firebase Admin.
 - Store auth tokens with `expo-secure-store`, not AsyncStorage.
 - The existing `scheme` is `tasktracker`, which is useful for OAuth/deep-link redirects.
 
@@ -66,7 +66,7 @@ Minimum task fields:
 
 Main user flows:
 
-- Sign in with Google OAuth.
+- Sign in with Google through Firebase Auth.
 - View workspaces and projects.
 - Create, update, delete, and archive projects.
 - View a board grouped by task status.
@@ -103,13 +103,14 @@ Topics covered:
 
 ### Phase 2: Authentication
 
-Objective: Implement secure login and session management with the Spring Boot backend.
+Objective: Implement secure login and session management with Firebase Auth and the Spring Boot backend.
 
 Recommended architecture:
 
-- Mobile app starts a Google OAuth flow.
-- Backend validates Google identity and issues the app's own access token and refresh token.
-- App stores tokens in `expo-secure-store`.
+- Mobile app starts Google login through Firebase Auth.
+- App sends the Firebase ID token to Spring Boot.
+- Backend verifies the Firebase ID token with Firebase Admin before allowing CRUD access.
+- App stores the current app session in `expo-secure-store`.
 - React Query uses the access token for API calls.
 - App refreshes tokens through the backend when needed.
 - App never stores Google client secrets.
@@ -126,11 +127,11 @@ Build:
 
 Topics covered:
 
-- OAuth redirect flow
+- Firebase Google login flow
 - Secure local persistence
 - Context API for auth state
 - Deep linking
-- Backend token exchange
+- Backend Firebase ID-token verification
 - Error handling for cancelled, failed, and expired auth sessions
 
 ### Phase 3: API Integration and Server State
@@ -167,6 +168,14 @@ src/
     storage/
   types/
 ```
+
+Frontend architecture direction:
+
+- Screens should stay thin and should not call Firebase, `fetch`, SecureStore, or platform APIs directly.
+- Feature hooks and React Query hooks coordinate UI state, navigation, cache invalidation, and service calls.
+- Service/API modules own vendor and transport details.
+- If Firebase/Auth/API vendors need to be swapped later, introduce a small service or repository contract and switch the implementation from one composition point.
+- Keep dependency direction one way: screen -> hook/query -> service/API -> vendor/platform.
 
 Topics covered:
 
@@ -456,4 +465,3 @@ Definition of done:
 - Role-based admin UI.
 
 These can be added later after the authenticated CRUD app is stable.
-

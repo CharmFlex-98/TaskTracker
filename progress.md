@@ -3,6 +3,8 @@
 ## Completed
 
 - Phase 1: Modern React Native and Expo Foundation is complete.
+- Phase 2: Authentication frontend foundation is complete.
+- Phase 3: API Integration and Server State is complete for the current project/task API scope.
 - Created `app_background.md` with product scope, learning roadmap, JD coverage, backend expectations, milestones, and first implementation sequence.
 - Confirmed the app baseline is Expo SDK 56 with React 19.2.3, React Native 0.85.3, Expo Router, TypeScript, typed routes, and React Compiler enabled.
 - Replaced the Expo starter home screen with a TaskTracker dashboard.
@@ -52,12 +54,79 @@
 - Installed and configured ESLint through Expo.
 - Verified that `npm run lint` works after switching to a supported Node version.
 - Fixed the web color-scheme hook to avoid React's `set-state-in-effect` lint rule by using `useSyncExternalStore`.
+- Installed SDK 56 auth/storage packages:
+  - `expo-auth-session`
+  - `expo-crypto`
+  - `expo-secure-store`
+- Added auth domain types in `src/types/auth.ts`.
+- Added environment typing in `src/types/env.d.ts`.
+- Added SecureStore-backed auth session storage in `src/lib/storage/auth-session-storage.ts`.
+- Added fail-closed backend auth exchange boundary in `src/lib/api/auth-api.ts`.
+- Added `AuthProvider` and `useAuth` in `src/features/auth/auth-provider.tsx`.
+- Protected the `(app)` route group and redirects unauthenticated users to `/sign-in`.
+- Added Google OAuth sign-in flow shell in `src/app/(auth)/sign-in.tsx`.
+- Added explicit local preview sign-in for development before the backend OAuth endpoint is available.
+- Added session display and sign-out in Settings.
+- Added `.env.example` with required public auth configuration keys.
+- Refactored the frontend API client into a reusable base request with explicit authenticated request wrapping.
+- Modularized frontend API, query keys, and domain types into auth, projects, tasks, and task-planner feature folders.
+- Created `server/` Spring Boot backend project following the setup in `~/IDEAProject/flexiexpensesmanager`.
+- Switched backend setup to Kotlin + Gradle Kotlin DSL with Gradle wrapper.
+- Added backend dependencies for Spring Web, Validation, JDBC, Flyway, PostgreSQL runtime, Firebase Admin, Jackson Kotlin, and Kotlin reflection.
+- Added backend entry point:
+  - `server/src/main/kotlin/com/tasktracker/server/TaskTrackerServerApplication.kt`
+- Added public backend health endpoint:
+  - `GET /api/health`
+- Replaced the direct Google auth exchange contract with Firebase auth verification:
+  - `POST /auth/firebase`
+- Added Firebase Admin ID-token verification and a fail-closed Firebase auth filter for protected API routes.
+- Added backend user/project/task persistence schema:
+  - `server/src/main/resources/db/migration/V1__create_tasktracker_schema.sql`
+- Enabled Flyway database migrations and disabled Spring's automatic `schema.sql` initialization.
+- Removed H2 and made the backend PostgreSQL-only.
+- Added server-local Docker Compose support for PostgreSQL plus the Gradle-built Spring Boot server image.
+- Added GitHub Actions workflow to publish the Gradle buildpack image and deploy with Docker Compose.
+- Removed the unused backend `UserRecord` class; user persistence currently uses the verified `AuthenticatedUser` directly.
+- Added authenticated backend project CRUD:
+  - `GET /api/projects`
+  - `GET /api/projects/{projectId}`
+  - `POST /api/projects`
+  - `PUT /api/projects/{projectId}`
+  - `DELETE /api/projects/{projectId}`
+- Added authenticated backend task CRUD:
+  - `GET /api/tasks`
+  - `GET /api/tasks/{taskId}`
+  - `POST /api/tasks`
+  - `PUT /api/tasks/{taskId}`
+  - `DELETE /api/tasks/{taskId}`
+- Added custom exception base and global exception handler following the reference project's style.
+- Added `server/README.md` with run, verify, and auth contract notes.
+- Added `server/.gitignore` so Gradle build output, IntelliJ metadata, and local backend env files are not tracked.
+- Removed backend tests and test-only dependencies because the current learning phase does not need test scaffolding yet.
+- Installed Firebase client SDK, TanStack Query, and AsyncStorage.
+- Added Firebase client config boundary in `src/lib/firebase/firebase.ts`.
+- Added React Query client provider in `src/app/_layout.tsx`.
+- Added typed API client boundaries for auth, projects, and tasks.
+- Connected Home, Projects, and Tasks screens to React Query-backed API data.
+- Connected New Project and New Task forms to real create mutations.
+- Connected project and task detail screens to server-backed React Query data.
+- Connected project and task edit screens to real update mutations.
+- Added project and task delete mutations to the detail screens.
+- Added task status transition mutation from the task detail screen.
+- Added backend task filters for project, status, priority, and search text.
+- Connected Search to backend-backed task query parameters.
+- Added pull-to-refresh to Home, Projects, Tasks, Project Detail, Task Detail, and Search screens.
+- Tightened React Query invalidation so all task list variants refresh after create, update, delete, or project delete mutations.
 
 ## Verification
 
 - `npx tsc --noEmit` passes.
 - `npm run lint` passes when the active Node version satisfies Expo SDK 56 requirements.
 - `npx expo lint` now exits cleanly after Node was updated.
+- `cd server && ./gradlew classes` passes.
+- `npx tsc --noEmit` passes after completing Phase 3.
+- `npx expo lint` passes after completing Phase 3.
+- `cd server && ./gradlew classes` passes after completing Phase 3.
 
 ## Environment Notes
 
@@ -77,26 +146,16 @@ open -a "Android Studio"
 
 ## Not Done Yet
 
-- Google OAuth login.
-- Secure token storage with `expo-secure-store`.
-- Auth provider and protected route flow.
-- Spring Boot API client.
-- React Query setup.
-- Real project CRUD.
-- Real task CRUD.
-- Status transition mutations.
-- Backend search/filter integration.
+- End-to-end Firebase Google login verification with real Firebase credentials.
+- Backend domain model for boards, comments, labels, and activity.
 - Tests and CI/CD workflow.
 - Production-ready Android/iOS build validation.
 
 ## Next Steps
 
-1. Start Phase 2 by adding auth architecture files without wiring real Google OAuth yet:
-   - auth types
-   - auth context/provider
-   - secure storage adapter
-   - protected route strategy
-2. Add React Query and API client boundaries.
-3. Turn project/task draft forms into real CRUD mutations.
-4. Turn task edit/status controls into real backend mutations.
-5. Connect to the Spring Boot backend once endpoint contracts are ready.
+1. Add real Firebase project credentials to `.env`.
+2. Configure Spring Boot with `FIREBASE_SERVICE_ACCOUNT_PATH` or `FIREBASE_SERVICE_ACCOUNT_JSON`.
+3. Verify end-to-end Firebase Google login on the emulator.
+4. Start Phase 4 board/detail planning features on top of the stable project/task API flow.
+5. Add backend domain model for boards, comments, labels, and activity.
+6. Add tests around API mappers, query hooks, and mutation flows.

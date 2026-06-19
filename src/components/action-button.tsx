@@ -5,13 +5,18 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 
 type ActionButtonProps = {
+  disabled?: boolean;
   label: string;
   onPress: () => void;
 };
 
-export function ActionButton({ label, onPress }: ActionButtonProps) {
+export function ActionButton({ disabled, label, onPress }: ActionButtonProps) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.72 : 1 })}>
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({ opacity: disabled ? 0.45 : pressed ? 0.72 : 1 })}>
       <ThemedView
         type="backgroundSelected"
         style={{
