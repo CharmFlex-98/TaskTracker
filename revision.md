@@ -882,6 +882,98 @@ _layout.tsx = wrapper/navigation
 index.tsx = default screen for that folder
 ```
 
+#### How do I know which screen opens first?
+
+In Expo Router, the first screen comes from the file-based route tree plus layouts and redirects.
+
+For this project, startup begins at the root layout:
+
+```tsx
+<Stack screenOptions={{ headerShown: false }}>
+  <Stack.Screen name="(app)" />
+  <Stack.Screen name="(auth)" />
+</Stack>
+```
+
+Because `(app)` is listed first and has an `index.tsx`, the initial route is:
+
+```text
+/
+```
+
+which maps to:
+
+```text
+src/app/(app)/index.tsx
+```
+
+But before showing that screen, Expo Router runs the group layout:
+
+```text
+src/app/(app)/_layout.tsx
+```
+
+That layout checks auth:
+
+```tsx
+const { status } = useAuth();
+
+if (status === 'loading') {
+  return <RestoringSessionScreen />;
+}
+
+if (status === 'unauthenticated') {
+  return <Redirect href="/sign-in" />;
+}
+
+return <AppTabs />;
+```
+
+So the actual startup behavior is:
+
+```text
+App opens at /
+/ maps to (app)/index.tsx
+(app)/_layout checks auth
+loading -> Restoring session screen
+unauthenticated -> /sign-in
+authenticated -> Home tab
+```
+
+If the user is authenticated, `(app)/_layout` returns tabs:
+
+```tsx
+<NativeTabs.Trigger name="index">
+  <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+</NativeTabs.Trigger>
+```
+
+So the authenticated first screen is:
+
+```text
+Home -> src/app/(app)/index.tsx
+```
+
+If the user is unauthenticated, the redirect sends them to:
+
+```text
+/sign-in -> src/app/(auth)/sign-in.tsx
+```
+
+How to debug the first screen:
+
+```text
+1. Check src/app/_layout.tsx.
+2. Check the first Stack.Screen or route group.
+3. Check that group's _layout.tsx.
+4. Check that group's index.tsx.
+5. Check any <Redirect /> logic.
+```
+
+Interview angle:
+
+Say Expo Router starts from the route tree and layout hierarchy. `index.tsx` gives the default route, while layouts can redirect or wrap the screen before it appears.
+
 #### Is `TabLayout` used if I never call it?
 
 Yes.
@@ -1954,6 +2046,134 @@ Interview angle:
 
 Say TypeScript is structurally describing JavaScript. Built-in declarations like `ErrorConstructor` describe real JavaScript globals. Custom `declare` statements should be used carefully because they bypass proof that the value actually exists at runtime.
 
+#### What does `declare global`, `ProcessEnv`, and `export {}` mean in env typings?
+
+Example:
+
+```ts
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      EXPO_PUBLIC_API_URL?: string;
+      EXPO_PUBLIC_FIREBASE_API_KEY?: string;
+    }
+  }
+}
+
+export {};
+```
+
+This file is TypeScript typing only. It does not load environment values.
+
+The actual values come from `.env` / Expo:
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3000
+```
+
+The declaration tells TypeScript:
+
+```text
+process.env.EXPO_PUBLIC_API_URL is a known key,
+and its value is string | undefined.
+```
+
+Why `undefined`?
+
+Because the variable may be missing from `.env`.
+
+So TypeScript encourages checks like:
+
+```ts
+const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+if (!apiUrl) {
+  throw new ApiError('EXPO_PUBLIC_API_URL is not configured.', 0, 'API_URL_MISSING');
+}
+```
+
+`global` means available everywhere without importing.
+
+Examples of global runtime values:
+
+```ts
+console.log('hi');
+setTimeout(() => {}, 1000);
+```
+
+No import is needed for those.
+
+TypeScript also has global types. `declare global` means:
+
+```text
+Add these declarations to the global TypeScript type scope.
+```
+
+`namespace NodeJS` is used because `process.env` is typed through Node's existing `NodeJS.ProcessEnv` type.
+
+`ProcessEnv` cannot be renamed if the goal is to type `process.env`.
+
+This works:
+
+```ts
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      EXPO_PUBLIC_API_URL?: string;
+    }
+  }
+}
+```
+
+because it merges with the existing `NodeJS.ProcessEnv` interface.
+
+This does not type `process.env`:
+
+```ts
+declare global {
+  namespace NodeJS {
+    interface MyEnv {
+      EXPO_PUBLIC_API_URL?: string;
+    }
+  }
+}
+```
+
+because `process.env` is not typed as `NodeJS.MyEnv`.
+
+`export {};` makes the file a module.
+
+TypeScript files are either script files or module files. A file becomes a module when it has any `import` or `export`.
+
+This declaration file has no real imports or exports, so we add:
+
+```ts
+export {};
+```
+
+That means:
+
+```text
+Treat this file as a module, even though it exports no runtime values.
+```
+
+This matters because `declare global` is intended to be used from inside a module. Without `export {};`, TypeScript may complain in some configurations:
+
+```text
+Augmentations for the global scope can only be directly nested in external modules
+```
+
+Key distinction:
+
+```text
+.env provides runtime/build-time values.
+env.d.ts provides compile-time TypeScript types.
+```
+
+Interview angle:
+
+Say env declaration files do not load configuration. They only augment TypeScript's global `process.env` type so custom env keys have autocomplete and safe `string | undefined` checking. `export {};` is a module marker that makes `declare global` valid.
+
 ### TypeScript vs Kotlin/KMP Architecture
 
 #### How are TypeScript best practices different from Kotlin/KMP best practices?
@@ -2154,6 +2374,115 @@ because it wraps `ScrollView`.
 
 If you do not forward props, you do not need to extend the base props.
 
+#### What is `PropsWithChildren`?
+
+`PropsWithChildren` is a React TypeScript helper type for components that render nested content.
+
+Example:
+
+```tsx
+import type { PropsWithChildren } from 'react';
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+```
+
+This means:
+
+```text
+AuthProvider accepts a children prop.
+```
+
+Usage:
+
+```tsx
+<AuthProvider>
+  <Stack />
+</AuthProvider>
+```
+
+Here:
+
+```tsx
+<Stack />
+```
+
+is passed as `children`.
+
+`PropsWithChildren` is roughly:
+
+```ts
+type PropsWithChildren<P = unknown> = P & {
+  children?: React.ReactNode;
+};
+```
+
+If there are no extra props:
+
+```ts
+PropsWithChildren
+```
+
+means:
+
+```ts
+{
+  children?: React.ReactNode;
+}
+```
+
+If there are extra props:
+
+```tsx
+type PanelProps = PropsWithChildren<{
+  title: string;
+}>;
+
+export function Panel({ title, children }: PanelProps) {
+  return (
+    <View>
+      <Text>{title}</Text>
+      {children}
+    </View>
+  );
+}
+```
+
+Usage:
+
+```tsx
+<Panel title="Projects">
+  <ProjectList />
+</Panel>
+```
+
+React passes:
+
+```ts
+{
+  title: 'Projects',
+  children: <ProjectList />
+}
+```
+
+Kotlin comparison:
+
+```kotlin
+@Composable
+fun AuthProvider(content: @Composable () -> Unit) {
+    CompositionLocalProvider(...) {
+        content()
+    }
+}
+```
+
+React's `children` is similar to Compose slot content.
+
+Interview angle:
+
+Say `PropsWithChildren` adds the standard React `children` prop to a component's props type. Use it for wrapper/provider/layout components that render nested JSX.
+
 ### `typeof`
 
 #### Is `typeof` useful?
@@ -2287,6 +2616,171 @@ const person: Person = {
 ```
 
 because `age` is missing.
+
+#### Why is `unknown & T` just `T`?
+
+`unknown` is TypeScript's safe top type.
+
+This:
+
+```ts
+unknown & { title: string }
+```
+
+means:
+
+```text
+a value that is unknown,
+and also has title: string
+```
+
+But every value is assignable to `unknown`, so `unknown` adds no extra requirement.
+
+So:
+
+```ts
+type A = unknown & { title: string };
+```
+
+behaves like:
+
+```ts
+type A = { title: string };
+```
+
+Identity rule:
+
+```ts
+unknown & T = T
+```
+
+This explains React's `PropsWithChildren` default:
+
+```ts
+type PropsWithChildren<P = unknown> = P & {
+  children?: React.ReactNode;
+};
+```
+
+If no generic type is passed:
+
+```ts
+PropsWithChildren
+```
+
+becomes:
+
+```ts
+unknown & {
+  children?: React.ReactNode;
+}
+```
+
+which simplifies to:
+
+```ts
+{
+  children?: React.ReactNode;
+}
+```
+
+If a prop type is passed:
+
+```ts
+PropsWithChildren<{
+  title: string;
+}>
+```
+
+becomes:
+
+```ts
+{
+  title: string;
+} & {
+  children?: React.ReactNode;
+}
+```
+
+which behaves like:
+
+```ts
+{
+  title: string;
+  children?: React.ReactNode;
+}
+```
+
+Important contrast:
+
+```ts
+unknown | T = unknown
+```
+
+because a union means either side, and `unknown` already covers every possible value.
+
+#### What about `any & T`?
+
+`any & T` behaves like `any`.
+
+Example:
+
+```ts
+type A = any & { title: string };
+```
+
+`A` behaves like:
+
+```ts
+any
+```
+
+So TypeScript stops protecting you:
+
+```ts
+const value: A = 123;
+
+value.title.toUpperCase(); // compiles, may crash
+value.notReal.deep.whatever(); // also compiles
+```
+
+`any` is not a normal safe top type. It means:
+
+```text
+turn off type checking here
+```
+
+So when `any` touches another type, it usually poisons the result:
+
+```ts
+any & T = any
+any | T = any
+```
+
+Compare:
+
+```ts
+unknown & T = T
+unknown | T = unknown
+```
+
+That is why `unknown` is safer than `any`.
+
+`unknown` says:
+
+```text
+I do not know what this is, so prove it before using it.
+```
+
+`any` says:
+
+```text
+Do whatever; TypeScript will not check.
+```
+
+Interview angle:
+
+Say `unknown` preserves type safety and combines predictably with intersections, while `any` disables checking and spreads unsafety through the type expression.
 
 #### Why is it called intersection if it seems to merge properties?
 
@@ -2512,6 +3006,378 @@ Use local state when:
 - the state does not need backend persistence yet
 
 Do not put form fields into Context or React Query unless there is a real shared-state reason.
+
+### Effect cleanup and async guards
+
+#### Why use a `cancelled` flag inside `useEffect`?
+
+Example:
+
+```tsx
+useEffect(() => {
+  let cancelled = false;
+
+  async function restoreSession() {
+    const storedSession = await getStoredAuthSession();
+
+    if (cancelled) {
+      return;
+    }
+
+    setSession(storedSession);
+    setStatus(storedSession ? 'authenticated' : 'unauthenticated');
+  }
+
+  restoreSession();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+```
+
+The empty dependency array means:
+
+```text
+run this effect once after the component first renders
+```
+
+In `AuthProvider`, this restores a saved session from storage when the app starts.
+
+The storage read is async:
+
+```ts
+const storedSession = await getStoredAuthSession();
+```
+
+After `await`, time has passed. The component may have unmounted.
+
+The cleanup function:
+
+```ts
+return () => {
+  cancelled = true;
+};
+```
+
+runs when the component unmounts.
+
+Then this guard:
+
+```ts
+if (cancelled) {
+  return;
+}
+```
+
+prevents old async work from updating state after the component lifecycle has ended.
+
+Without the guard, this can happen:
+
+```text
+component mounts
+async restore starts
+component unmounts
+async restore finishes
+old async work calls setState
+```
+
+The user may not see the update because the component is gone, but the update is still stale work. It can also cause lifecycle warnings in some React versions and race bugs in more complex flows.
+
+Example race:
+
+```text
+AuthProvider instance A mounts
+A starts restoreSession
+A unmounts
+AuthProvider instance B mounts
+B starts restoreSession
+A finishes late
+```
+
+The `cancelled` flag means only the still-current mounted effect can apply its result.
+
+Important:
+
+```text
+This does not cancel getStoredAuthSession itself.
+It only ignores the result if the component has already unmounted.
+```
+
+For cancellable APIs like `fetch`, `AbortController` can actually cancel the request. For storage reads, a boolean guard is a simple lifecycle safety pattern.
+
+Kotlin comparison:
+
+```kotlin
+val job = launch {
+    val session = repository.getStoredSession()
+    state.value = session
+}
+
+onCleared {
+    job.cancel()
+}
+```
+
+Even if the result would not be visible after the screen is gone, stale lifecycle work should not update old state.
+
+Interview angle:
+
+Say the cleanup guard prevents stale async results from applying after unmount. It is about lifecycle correctness and avoiding race bugs, not just visible UI output.
+
+### Callback dependencies
+
+#### Why does `useCallback` include a function like `signInWithSession` in the dependency array?
+
+Example:
+
+```tsx
+const signInWithLocalPreview = useCallback(async () => {
+  await signInWithSession({
+    accessToken: 'local-preview-access-token',
+    refreshToken: 'local-preview-refresh-token',
+    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
+    user: {
+      id: 'local-preview-user',
+      email: 'jiaming@example.com',
+      name: 'Jiaming',
+    },
+  });
+}, [signInWithSession]);
+```
+
+The second argument:
+
+```ts
+[signInWithSession]
+```
+
+is not a key. It is the dependency array.
+
+It means:
+
+```text
+Keep the same signInWithLocalPreview function between renders
+unless signInWithSession changes.
+```
+
+`signInWithLocalPreview` uses `signInWithSession` from the outer scope:
+
+```ts
+await signInWithSession(...);
+```
+
+So React hook rules expect that value to be listed as a dependency.
+
+In the current code, `signInWithSession` is also created with `useCallback`:
+
+```ts
+const signInWithSession = useCallback(async (nextSession: AuthSession) => {
+  await setStoredAuthSession(nextSession);
+  setSession(nextSession);
+  setStatus('authenticated');
+}, []);
+```
+
+Because its dependency array is empty:
+
+```ts
+[]
+```
+
+`signInWithSession` is stable for the lifetime of the mounted provider.
+
+So practically:
+
+```text
+signInWithSession probably will not change during the same mount.
+```
+
+But it is still correct to include it as a dependency because the implementation may change later.
+
+Example future change:
+
+```ts
+const signInWithSession = useCallback(async (nextSession: AuthSession) => {
+  analytics.track('sign_in', { userId: nextSession.user.id });
+  await setStoredAuthSession(nextSession);
+  setSession(nextSession);
+  setStatus('authenticated');
+}, [analytics]);
+```
+
+Now `signInWithSession` changes if `analytics` changes. Because `signInWithLocalPreview` depends on it, `signInWithLocalPreview` should also be recreated.
+
+If the dependency is omitted, ESLint's React hooks rule may warn:
+
+```text
+React Hook useCallback has a missing dependency: 'signInWithSession'
+```
+
+Kotlin comparison:
+
+```kotlin
+val signInWithLocalPreview = {
+    signInWithSession(...)
+}
+```
+
+The lambda captures `signInWithSession` from outside. If that outside value changes, the lambda should use the current value, not an old captured one.
+
+Interview angle:
+
+Say `useCallback` dependencies are the outside values captured by the callback. Even if a dependency is currently stable, listing it keeps the callback correct if the implementation changes and satisfies React hook lint rules.
+
+### Memoized context values
+
+#### Why use `useMemo` for a React Context value?
+
+Example:
+
+```tsx
+const value = useMemo(
+  () => ({
+    session,
+    signInWithLocalPreview,
+    signInWithSession,
+    signOut,
+    status,
+  }),
+  [session, signInWithLocalPreview, signInWithSession, signOut, status]
+);
+
+return <AuthContext value={value}>{children}</AuthContext>;
+```
+
+`useMemo` keeps the same object reference between renders unless one of the dependencies changes.
+
+Without `useMemo`, this creates a new object on every render:
+
+```tsx
+const value = {
+  session,
+  signInWithLocalPreview,
+  signInWithSession,
+  signOut,
+  status,
+};
+```
+
+Even if every field has the same value, the object itself is new:
+
+```ts
+{} === {}; // false
+```
+
+React Context compares the provider `value` by reference. If the provider receives a new object every render, context consumers may re-render even when auth state did not meaningfully change.
+
+`useMemo` means:
+
+```text
+Reuse the same context value object
+unless session, callbacks, or status changes.
+```
+
+Why all dependencies are listed:
+
+```ts
+[session, signInWithLocalPreview, signInWithSession, signOut, status]
+```
+
+Because the memoized object uses all of those values. If any one changes, the context value should be rebuilt so consumers receive the latest value.
+
+Kotlin comparison:
+
+Think of exposing a stable immutable UI state object:
+
+```kotlin
+data class AuthState(
+    val session: AuthSession?,
+    val status: AuthStatus
+)
+```
+
+You only want to emit a new state object when one of its fields actually changes.
+
+Interview angle:
+
+Say `useMemo` prevents recreating the context value object on every render, which helps avoid unnecessary context consumer re-renders. The dependency array lists the fields that should cause a new context value.
+
+#### Why not use `useMemo` for every derived value?
+
+Example:
+
+```ts
+const projects = projectsQuery.data ?? [];
+const tasks = tasksQuery.data ?? [];
+const completedTasks = tasks.filter((task) => task.status === 'done').length;
+const activeTasks = tasks.filter((task) => task.status === 'in_progress').length;
+const blockedTasks = tasks.filter((task) => task.status === 'blocked').length;
+const highlightedTasks = tasks.slice(0, 3);
+const isRefreshing = projectsQuery.isRefetching || tasksQuery.isRefetching;
+```
+
+These values do not need `useMemo` because:
+
+- the arrays are small right now
+- `filter` and `slice` are simple calculations
+- the values are only used inside the current render
+- memoization has its own overhead
+- adding `useMemo` everywhere makes the code noisier
+
+Plain render-time derived values are normal React style.
+
+`useMemo` is useful when:
+
+```text
+the calculation is expensive,
+or the result reference must stay stable for child memoization/context,
+or a dependency-created object/array would cause unnecessary effects or renders.
+```
+
+The auth context value is different:
+
+```tsx
+const value = useMemo(() => ({ session, status, signOut }), [session, status, signOut]);
+
+return <AuthContext value={value}>{children}</AuthContext>;
+```
+
+There, `useMemo` matters because the object is passed into Context. Context consumers may re-render when the value reference changes.
+
+For local derived values:
+
+```ts
+const completedTasks = tasks.filter((task) => task.status === 'done').length;
+```
+
+this is clearer than:
+
+```ts
+const completedTasks = useMemo(
+  () => tasks.filter((task) => task.status === 'done').length,
+  [tasks]
+);
+```
+
+Kotlin comparison:
+
+```kotlin
+val completedTasks = tasks.count { it.status == DONE }
+```
+
+You normally compute this directly unless the list is large or the calculation is expensive.
+
+Key rule:
+
+```text
+Do not use useMemo by default.
+Use it when there is a measured or obvious reason.
+```
+
+Interview angle:
+
+Say `useMemo` is a performance/reference-stability tool, not a default wrapper for every calculation. Cheap local derived values should stay simple.
 
 ### State management and data fetching
 
@@ -3248,6 +4114,179 @@ Calling it in every service method is simple and reliable, but repetitive. Later
 Interview angle:
 
 Say this is a pragmatic "just-in-time user provisioning" pattern. Firebase owns identity, but the app database still needs a local user row for ownership, foreign keys, and user-scoped queries.
+
+#### Why use `Boolean(...)` instead of relying on truthy values?
+
+Short answer:
+
+Python and JavaScript/TypeScript both allow truthy and falsy values in `if` statements, but JavaScript's `&&` operator returns the actual evaluated value, not always a boolean. `Boolean(...)` converts the result into an explicit `true` or `false`.
+
+Detailed explanation:
+
+In Python, this works:
+
+```python
+if api_url and google_web_client_id:
+    print("configured")
+```
+
+JavaScript/TypeScript can also do truthy checks:
+
+```ts
+if (apiUrl && googleWebClientId) {
+  console.log('configured');
+}
+```
+
+But this expression:
+
+```ts
+const isGoogleConfigured = apiUrl && googleWebClientId && isFirebaseConfigured();
+```
+
+does not necessarily produce a boolean. It can return:
+
+- `undefined` if `apiUrl` is missing
+- an empty string if one value is an empty string
+- the `googleWebClientId` string in some shorter expressions
+- the final boolean from `isFirebaseConfigured()` when earlier values are truthy
+
+So in React or TypeScript code, this is cleaner:
+
+```ts
+const isGoogleConfigured = Boolean(apiUrl && googleWebClientId && isFirebaseConfigured());
+```
+
+Now `isGoogleConfigured` is always exactly `true` or `false`.
+
+Equivalent style:
+
+```ts
+const isGoogleConfigured = !!apiUrl && !!googleWebClientId && isFirebaseConfigured();
+```
+
+Common mistake to avoid:
+
+Do not assume `&&` always returns a boolean in JavaScript. It returns the first falsy value or the last truthy value.
+
+Interview angle:
+
+Say that truthy checks are useful, but when a value is used as a named boolean state or passed into UI logic, converting it to a real boolean improves readability and type safety.
+
+#### What does `<Redirect href="/" />` mean in Expo Router?
+
+Short answer:
+
+`<Redirect href="/" />` sends the user to the root route. In the sign-in screen, it prevents an already authenticated user from seeing the login page again.
+
+Detailed explanation:
+
+Example from the sign-in screen:
+
+```tsx
+if (status === 'authenticated') {
+  return <Redirect href="/" />;
+}
+```
+
+This means:
+
+```text
+If the user is already signed in, do not render the sign-in UI.
+Redirect them to the main app route instead.
+```
+
+In Expo Router, `/` means the app's root route. The exact screen the user sees depends on the route layout. In this project, `/` resolves into the authenticated app area when the auth state is valid.
+
+Why use `Redirect`:
+
+This is a render-time route guard. The screen itself declares that authenticated users do not belong on the sign-in page.
+
+It avoids rendering the wrong UI briefly and avoids writing an effect like this for a simple guard:
+
+```tsx
+useEffect(() => {
+  if (status === 'authenticated') {
+    router.replace('/');
+  }
+}, [status]);
+```
+
+The matching protected-route pattern is:
+
+```tsx
+if (status === 'unauthenticated') {
+  return <Redirect href="/sign-in" />;
+}
+```
+
+Common mistake to avoid:
+
+Do not let authenticated users stay on the login screen after session restore. It creates confusing navigation and can make users think they are signed out.
+
+Interview angle:
+
+Say that Expo Router route protection can be expressed declaratively. Auth-only screens redirect signed-in users away, and app-only screens redirect signed-out users to login.
+
+#### Why does the SSH client keep the private key?
+
+Short answer:
+
+In SSH key login, the private key is the client's proof of identity. The server only needs the matching public key to verify that proof.
+
+Detailed explanation:
+
+The normal SSH key model is:
+
+```text
+Client device:
+  private key stays secret on the client
+  public key can be shared
+
+Server:
+  stores allowed public keys in ~/.ssh/authorized_keys
+```
+
+During login:
+
+```text
+1. Client asks to log in as a server user.
+2. Server checks that user's ~/.ssh/authorized_keys.
+3. Server sends a challenge.
+4. Client signs the challenge with its private key.
+5. Server verifies the signature with the public key.
+6. If the signature is valid, login succeeds.
+```
+
+The private key does not need to leave the client. The server can verify ownership of the private key using only the public key.
+
+Why not store the private key on the server:
+
+If the server stored every client's private key, a server compromise would leak all client identities. Attackers could impersonate those clients elsewhere. Keeping private keys on clients limits the blast radius.
+
+This is similar to digital signing:
+
+```text
+Signer has private key.
+Verifier has public key.
+Signer signs a message.
+Verifier checks the signature.
+```
+
+SSH authentication is also a signing challenge:
+
+```text
+Client signs a login challenge.
+Server verifies the signature.
+```
+
+Common mistake to avoid:
+
+Do not copy one private key everywhere by default. Prefer one key per device or environment, such as laptop, phone, and GitHub Actions. Add each public key to the server's `authorized_keys`. That makes it easier to revoke one device without replacing every key.
+
+Interview angle:
+
+Say that SSH key authentication uses asymmetric cryptography. The private key stays with the actor proving identity, while the server stores public keys as an allowlist.
 
 ## Future Questions Template
 

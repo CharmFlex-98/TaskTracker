@@ -117,6 +117,8 @@
 - Connected Search to backend-backed task query parameters.
 - Added pull-to-refresh to Home, Projects, Tasks, Project Detail, Task Detail, and Search screens.
 - Tightened React Query invalidation so all task list variants refresh after create, update, delete, or project delete mutations.
+- Renamed the Android application package from `com.anonymous.TaskTracker` to `com.charmflex.app.planstack`.
+- Bound the server-side `./secrets` folder into the backend container at `/run/secrets/tasktracker:ro` and defaulted Firebase Admin to `/run/secrets/tasktracker/firebase-service-account.json`.
 
 ## Verification
 

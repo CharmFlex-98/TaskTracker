@@ -25,7 +25,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: ./server/docker-compose.yml
           target: ./servers/tasktracker_server
-          strip_components: 1
+          strip_components: 2
 
       - name: Build and publish server image
         working-directory: ./server

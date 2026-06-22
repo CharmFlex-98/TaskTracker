@@ -1,35 +1,18 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${TASKTRACKER_DB_NAME:-tasktracker}
-      POSTGRES_USER: ${TASKTRACKER_DB_USERNAME:-tasktracker}
-      POSTGRES_PASSWORD: ${TASKTRACKER_DB_PASSWORD:-tasktracker}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - "5432:5432"
-    volumes:
-      - tasktracker_postgres_data:/var/lib/postgresql/data
-
   server:
     image: charmflex/server-tasktracker-server:latest
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      TASKTRACKER_DB_URL: jdbc:postgresql://postgres:5432/${TASKTRACKER_DB_NAME:-tasktracker}
+      TASKTRACKER_DB_URL: ${TASKTRACKER_DB_URL:}
       TASKTRACKER_DB_USERNAME: ${TASKTRACKER_DB_USERNAME:-tasktracker}
       TASKTRACKER_DB_PASSWORD: ${TASKTRACKER_DB_PASSWORD:-tasktracker}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
-      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-}
+      FIREBASE_SERVICE_ACCOUNT_PATH: ${FIREBASE_SERVICE_ACCOUNT_PATH:-/run/secrets/tasktracker/firebase-service-account.json}
     ports:
       - "3000:3000"
+    volumes:
+      - ./secrets:/run/secrets/tasktracker:ro
     restart: unless-stopped
-
-volumes:
-  tasktracker_postgres_data:
