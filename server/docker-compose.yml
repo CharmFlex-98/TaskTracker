@@ -1,11 +1,8 @@
 services:
   server:
     image: charmflex/server-tasktracker-server:latest
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      TASKTRACKER_DB_URL: ${TASKTRACKER_DB_URL:}
+      TASKTRACKER_DB_URL: ${TASKTRACKER_DB_URL:-}
       TASKTRACKER_DB_USERNAME: ${TASKTRACKER_DB_USERNAME:-tasktracker}
       TASKTRACKER_DB_PASSWORD: ${TASKTRACKER_DB_PASSWORD:-tasktracker}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
