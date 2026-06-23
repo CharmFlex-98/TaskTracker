@@ -7,7 +7,7 @@ import {
   getStoredAuthSession,
   setStoredAuthSession,
 } from '@/lib/storage/auth-session-storage';
-import { firebaseAuth } from '@/lib/firebase/firebase';
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/firebase';
 import type { AuthSession, AuthStatus } from '@/features/auth/types';
 
 type AuthContextValue = {
@@ -52,7 +52,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await signOutFirebase(firebaseAuth).catch(() => undefined);
+    if (isFirebaseConfigured()) {
+      await signOutFirebase(getFirebaseAuth()).catch(() => undefined);
+    }
     await clearStoredAuthSession();
     setSession(null);
     setStatus('unauthenticated');

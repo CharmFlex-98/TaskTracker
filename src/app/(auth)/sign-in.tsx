@@ -2,7 +2,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import { Redirect, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { ActionButton } from '@/components/action-button';
@@ -13,7 +13,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/auth-provider';
 import { exchangeFirebaseTokenForSession } from '@/features/auth/auth-api';
-import { firebaseAuth, isFirebaseConfigured } from '@/lib/firebase/firebase';
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,7 +27,8 @@ export default function SignInScreen() {
   const { signInWithLocalPreview, signInWithSession, status } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [request, , promptAsync] = Google.useIdTokenAuthRequest(
+  const handledResponseUrlRef = useRef<string | null>(null);
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     {
       androidClientId: googleAndroidClientId,
       iosClientId: googleIosClientId,
@@ -36,6 +37,51 @@ export default function SignInScreen() {
     }
   );
   const isGoogleConfigured = Boolean(apiUrl && googleWebClientId && isFirebaseConfigured());
+
+  if (__DEV__ && request) {
+    console.info('[auth] Google redirect URI:', request.redirectUri);
+    console.info('[auth] Google client ID:', request.clientId);
+  }
+
+  const completeGoogleSignIn = useCallback(async (googleIdToken: unknown) => {
+    if (typeof googleIdToken !== 'string' || googleIdToken.length === 0) {
+      setErrorMessage('Google sign-in did not return an ID token.');
+      setIsSigningIn(false);
+      return;
+    }
+
+    try {
+      const credential = GoogleAuthProvider.credential(googleIdToken);
+      const firebaseCredential = await signInWithCredential(getFirebaseAuth(), credential);
+      const firebaseIdToken = await firebaseCredential.user.getIdToken();
+
+      const session = await exchangeFirebaseTokenForSession({
+        idToken: firebaseIdToken,
+      });
+
+      await signInWithSession(session);
+      router.replace('/');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Google sign-in failed.');
+    } finally {
+      setIsSigningIn(false);
+    }
+  }, [router, signInWithSession]);
+
+  useEffect(() => {
+    if (response?.type !== 'success') {
+      return;
+    }
+
+    const responseUrl = response.url ?? response.params.code ?? response.params.id_token ?? '';
+
+    if (handledResponseUrlRef.current === responseUrl) {
+      return;
+    }
+
+    handledResponseUrlRef.current = responseUrl;
+    void completeGoogleSignIn(response.params.id_token);
+  }, [completeGoogleSignIn, response]);
 
   if (status === 'authenticated') {
     return <Redirect href="/" />;
@@ -71,29 +117,11 @@ export default function SignInScreen() {
 
       if (result.type !== 'success') {
         setErrorMessage(`Google sign-in did not complete: ${result.type}.`);
+        setIsSigningIn(false);
         return;
       }
-
-      const googleIdToken = result.params.id_token;
-
-      if (typeof googleIdToken !== 'string') {
-        setErrorMessage('Google sign-in did not return an ID token.');
-        return;
-      }
-
-      const credential = GoogleAuthProvider.credential(googleIdToken);
-      const firebaseCredential = await signInWithCredential(firebaseAuth, credential);
-      const firebaseIdToken = await firebaseCredential.user.getIdToken();
-
-      const session = await exchangeFirebaseTokenForSession({
-        idToken: firebaseIdToken,
-      });
-
-      await signInWithSession(session);
-      router.replace('/');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Google sign-in failed.');
-    } finally {
       setIsSigningIn(false);
     }
   }

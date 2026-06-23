@@ -4288,6 +4288,157 @@ Interview angle:
 
 Say that SSH key authentication uses asymmetric cryptography. The private key stays with the actor proving identity, while the server stores public keys as an allowlist.
 
+#### Why can the root stack use `(app)` but needs `(auth)/sign-in`?
+
+Short answer:
+
+`(app)` has its own `_layout.tsx`, so it is a nested navigator route. `(auth)` does not have `_layout.tsx`, so it is only a grouping folder and the actual screen is `(auth)/sign-in`.
+
+Detailed explanation:
+
+Current route files:
+
+```text
+src/app/(app)/_layout.tsx
+src/app/(app)/index.tsx
+src/app/(auth)/sign-in.tsx
+```
+
+Expo Router sees:
+
+```text
+(app)              -> route group with its own layout/navigator
+(auth)/sign-in    -> screen inside the auth group
+```
+
+This works:
+
+```tsx
+<Stack.Screen name="(app)" />
+```
+
+because this file exists:
+
+```text
+src/app/(app)/_layout.tsx
+```
+
+That layout makes `(app)` a nested route entry.
+
+This does not work:
+
+```tsx
+<Stack.Screen name="(auth)" />
+```
+
+because this file does not exist:
+
+```text
+src/app/(auth)/_layout.tsx
+```
+
+Without an auth layout, `(auth)` is only a route group folder. The real route is:
+
+```tsx
+<Stack.Screen name="(auth)/sign-in" />
+```
+
+If we want `(auth)` to behave like `(app)`, add:
+
+```text
+src/app/(auth)/_layout.tsx
+```
+
+Example:
+
+```tsx
+import { Stack } from 'expo-router/stack';
+
+export default function AuthLayout() {
+  return <Stack screenOptions={{ headerShown: false }} />;
+}
+```
+
+Then the root stack can reference:
+
+```tsx
+<Stack.Screen name="(auth)" />
+```
+
+Common mistake to avoid:
+
+Do not assume a route group folder is a route by itself. It becomes a route entry only when it has a layout or an actual screen path referenced by the stack.
+
+Interview angle:
+
+Say that Expo Router route groups organize routes without adding URL segments. A group with `_layout.tsx` acts as a nested navigator; a group without `_layout.tsx` only contains screens.
+
+#### Why use `useRef` instead of `useState` to remember a handled OAuth response?
+
+Short answer:
+
+`useRef` stores a mutable value across renders without causing another render. It is useful for internal bookkeeping that should not affect the UI.
+
+Detailed explanation:
+
+In the Google sign-in flow, the auth response can remain available while the component re-renders. Without a guard, the effect could handle the same OAuth response more than once:
+
+```text
+OAuth response arrives
+-> effect runs
+-> Firebase sign-in starts
+-> component re-renders
+-> same response is still present
+-> effect could run again
+```
+
+So the code remembers the response that has already been handled:
+
+```tsx
+const handledResponseUrlRef = useRef<string | null>(null);
+```
+
+Then the effect checks it:
+
+```tsx
+if (handledResponseUrlRef.current === responseUrl) {
+  return;
+}
+
+handledResponseUrlRef.current = responseUrl;
+void completeGoogleSignIn(response.params.id_token);
+```
+
+Why not `useState`:
+
+```tsx
+setHandledResponseUrl(responseUrl);
+```
+
+State is for values that affect rendering. Updating state triggers another render. In this case, the value is only an internal "already handled" marker, so re-rendering is unnecessary and can create more effect churn.
+
+Key difference:
+
+```text
+useState:
+  persists across renders
+  updates trigger re-render
+  use for UI state
+
+useRef:
+  persists across renders
+  updates do not trigger re-render
+  use for mutable instance values, timers, DOM/native refs, and effect guards
+```
+
+Common mistake to avoid:
+
+Do not use `useRef` for values that the UI should react to. If changing a value should change what the user sees, use `useState`.
+
+Interview angle:
+
+Say that `useRef` is useful for storing mutable, non-visual state. In this auth flow, it prevents duplicate side effects without causing an extra render.
+
 ## Future Questions Template
 
 Use this template when adding a new question later.

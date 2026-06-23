@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import type { Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -21,6 +22,11 @@ export function isFirebaseConfigured() {
   );
 }
 
-export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+export function getFirebaseAuth(): Auth {
+  if (!isFirebaseConfigured()) {
+    throw new Error('Firebase public config is not fully configured.');
+  }
 
-export const firebaseAuth = getAuth(firebaseApp);
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  return getAuth(app);
+}

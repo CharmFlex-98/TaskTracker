@@ -119,6 +119,12 @@
 - Tightened React Query invalidation so all task list variants refresh after create, update, delete, or project delete mutations.
 - Renamed the Android application package from `com.anonymous.TaskTracker` to `com.charmflex.app.planstack`.
 - Bound the server-side `./secrets` folder into the backend container at `/run/secrets/tasktracker:ro` and defaulted Firebase Admin to `/run/secrets/tasktracker/firebase-service-account.json`.
+- Fixed production Docker Compose interpolation for `TASKTRACKER_DB_URL` and removed the stale `postgres` dependency from the server-only deploy file.
+- Deferred Firebase client initialization until real Firebase auth is used and added development API request logging.
+- Fixed the root Expo Router stack config to reference `(auth)/sign-in` instead of the non-existent `(auth)` layout route.
+- Registered the Android application ID as an OAuth redirect scheme and added development logging for Google AuthSession redirect/client IDs.
+- Added an Expo Router native intent rewrite so Google OAuth callback links do not render as unmatched `/oauthredirect` routes.
+- Fixed Google sign-in to wait for Expo AuthSession's post-code-exchange response before reading the returned ID token.
 
 ## Verification
 

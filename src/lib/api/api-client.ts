@@ -1,4 +1,4 @@
-import { firebaseAuth } from '@/lib/firebase/firebase';
+import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase/firebase';
 import { getStoredAuthSession } from '@/lib/storage/auth-session-storage';
 import { ApiError } from './api-error';
 
@@ -18,7 +18,13 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
 
   const { auth = false, body, errorCode = 'API_REQUEST_FAILED', fallbackErrorMessage, headers, ...requestInit } = options;
   const token = auth ? await getAccessToken() : null;
-  const response = await fetch(`${apiUrl}${path}`, {
+  const url = `${apiUrl}${path}`;
+
+  if (__DEV__) {
+    console.info(`[api] ${requestInit.method ?? 'GET'} ${url}`);
+  }
+
+  const response = await fetch(url, {
     ...requestInit,
     body: body === undefined ? undefined : JSON.stringify(body),
     headers: {
@@ -43,6 +49,10 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     throw new ApiError(message, response.status, errorCode);
   }
 
+  if (__DEV__) {
+    console.info(`[api] ${response.status} ${requestInit.method ?? 'GET'} ${url}`);
+  }
+
   return responseBody as T;
 }
 
@@ -57,7 +67,7 @@ export function authenticatedApiRequest<T>(
 }
 
 async function getAccessToken() {
-  const currentUser = firebaseAuth.currentUser;
+  const currentUser = isFirebaseConfigured() ? getFirebaseAuth().currentUser : null;
 
   if (currentUser) {
     return currentUser.getIdToken();
